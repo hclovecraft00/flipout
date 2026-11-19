@@ -51,7 +51,10 @@ function savePrefs() { try { localStorage.setItem('flipout-prefs-v2', JSON.strin
 
 const key = (fid, lid) => `${fid}|${lid}`;
 const curFid = () => P.frames[P.current];
-const activeLayer = () => P.layers.find((l) => l.id === P.activeLayer) || P.layers[P.layers.length - 1];
+// Guide layers (from the storyboard) are faint, can't be drawn on, and never appear in exports, onion skin or playback.
+const isGuide = (l) => !!(l && l.guide);
+const drawLayers = () => P.layers.filter((l) => !l.guide);
+const activeLayer = () => P.layers.find((l) => l.id === P.activeLayer && !l.guide) || drawLayers().at(-1) || P.layers[P.layers.length - 1];
 
 // ---------- open / close ----------
 export async function openEditor(meta, exitCallback) {
@@ -59,7 +62,7 @@ export async function openEditor(meta, exitCallback) {
   P = meta; onExit = exitCallback;
   P.onion = { on: true, back: 1, fwd: 0, opacity: 0.35, tint: true, ...(P.onion || {}) };
   P.current = Math.min(P.current || 0, P.frames.length - 1);
-  if (!P.layers.find((l) => l.id === P.activeLayer)) P.activeLayer = P.layers[P.layers.length - 1].id;
+  if (!P.layers.find((l) => l.id === P.activeLayer && !l.guide)) P.activeLayer = (drawLayers().at(-1) || P.layers[P.layers.length - 1]).id;
   cells = new Map(); live = new Map(); dirty = new Set(); flats = new Map();
   undoStack = []; redoStack = []; stroke = null; playing = false; clipboard = null;
   view = { s: 1, tx: 0, ty: 0 };
@@ -162,6 +165,8 @@ function rebuildLive() {
     }
     stack.appendChild(v.canvas); // appending in order also re-orders
     v.canvas.style.visibility = l.visible ? 'visible' : 'hidden';
+    v.canvas.style.opacity = l.guide ? '0.35' : '';
+    v.canvas.classList.toggle('guide-layer', isGuide(l));
   }
 }
 
@@ -196,7 +201,7 @@ export function getFlat(i) {
   const fid = P.frames[i];
   if (i === P.current && dirty.size) {
     const c = makeCanvas(P.w, P.h), cx = c.getContext('2d');
-    for (const l of P.layers) if (l.visible) cx.drawImage(live.get(l.id).canvas, 0, 0);
+    for (const l of P.layers) if (l.visible && !l.guide) cx.drawImage(live.get(l.id).canvas, 0, 0);
     return createImageBitmap(c);
   }
   let p = flats.get(fid);
@@ -204,7 +209,7 @@ export function getFlat(i) {
   p = (async () => {
     const c = makeCanvas(P.w, P.h), cx = c.getContext('2d');
     for (const l of P.layers) {
-      if (!l.visible) continue;
+      if (!l.visible || l.guide) continue;
       const b = await getCellBlob(fid, l.id);
       if (!b) continue;
       const bmp = await createImageBitmap(b);
@@ -323,6 +328,7 @@ function strokeWidth(e) {
 
 function beginStroke(e) {
   const layer = activeLayer();
+  if (isGuide(layer)) { toast('That’s the guide. Add or pick a drawing layer in Layers.'); return; }
   if (!layer.visible) { toast('This layer is hidden. Show it in Layers to draw on it.'); return; }
   const { canvas, ctx } = live.get(layer.id);
   const pt = toCanvas(e);
@@ -521,13 +527,13 @@ const layerActions = {
     });
   },
   remove: (id) => {
-    if (P.layers.length === 1) { toast('You need at least one layer'); return; }
     const l = P.layers.find((x) => x.id === id);
+    if (P.layers.length === 1 || (!l.guide && drawLayers().length === 1)) { toast('You need at least one drawing layer'); return; }
     if (!confirm(`Delete “${l.name}” on every frame?`)) return;
     return structOp(() => {
       const i = P.layers.findIndex((x) => x.id === id);
       P.layers.splice(i, 1);
-      if (P.activeLayer === id) P.activeLayer = P.layers[Math.max(0, i - 1)].id;
+      if (P.activeLayer === id) P.activeLayer = (drawLayers().at(-1) || P.layers[Math.max(0, i - 1)]).id;
     }).then(() => toast('Layer deleted', 'Undo', undo));
   },
   move: (id, d) => structOp(() => {
@@ -542,6 +548,7 @@ const layerActions = {
     flats.clear(); renderOnion(); saveMetaSoon(); renderLayers();
   },
   pick: (id) => {
+    if (isGuide(P.layers.find((x) => x.id === id))) { toast('That’s the guide: it stays faint and is never exported. Draw on another layer.'); return; }
     if (P.activeLayer === id) {
       const l = P.layers.find((x) => x.id === id);
       const name = prompt('Layer name', l.name);
@@ -564,10 +571,10 @@ function renderLayers() {
   ul.innerHTML = '';
   [...P.layers].reverse().forEach((l, ri) => {
     const li = document.createElement('li');
-    li.className = 'layer-row' + (l.id === P.activeLayer ? ' active' : '') + (l.visible ? '' : ' hidden-layer');
+    li.className = 'layer-row' + (l.id === P.activeLayer && !l.guide ? ' active' : '') + (l.visible ? '' : ' hidden-layer') + (l.guide ? ' guide-row' : '');
     const pick = document.createElement('button');
     pick.className = 'layer-pick';
-    pick.setAttribute('aria-label', `${l.name}${l.id === P.activeLayer ? ' (drawing on this layer, tap to rename)' : ''}`);
+    pick.setAttribute('aria-label', `${l.name}${l.guide ? ' (guide: faint, not exported)' : l.id === P.activeLayer ? ' (drawing on this layer, tap to rename)' : ''}`);
     const th = makeCanvas(68, Math.round(68 * P.h / P.w));
     th.getContext('2d').drawImage(live.get(l.id).canvas, 0, 0, th.width, th.height);
     const name = document.createElement('span'); name.textContent = l.name;

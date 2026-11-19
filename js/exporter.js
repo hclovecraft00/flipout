@@ -263,7 +263,7 @@ export async function importBackup(file) {
     const W = meta.w, H = meta.h, c = makeCanvas(240, Math.round(240 * H / W)), ctx = c.getContext('2d');
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
     for (const l of meta.layers) {
-      if (!l.visible) continue;
+      if (!l.visible || l.guide) continue;
       const cell = cells.find((x) => x.fid === meta.frames[0] && x.lid === l.id);
       if (!cell) continue;
       const bmp = await createImageBitmap(new Blob([cell.buf], { type: 'image/png' }));
