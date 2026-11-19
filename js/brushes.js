@@ -2,11 +2,10 @@
 // Grainy pens draw the whole stroke into a buffer, then show it through a paper-grain
 // texture fixed to the page, so the texture lines up like real paper tooth.
 
+// Pencil, crayon and oil pastel were taken out of the app (too slow on the iPad Air);
+// their engine code stays below in case they come back.
 export const PENS = [
-  { id: 'pencil', name: 'Pencil', size: 8 },
-  { id: 'crayon', name: 'Crayon', size: 20 },
-  { id: 'marker', name: 'Marker', size: 10 },
-  { id: 'oil', name: 'Oil pastel', size: 32 },
+  { id: 'marker', name: 'Pen', size: 12 },
   { id: 'fuzzy', name: 'Fuzzy', size: 32 },
   { id: 'eraser', name: 'Eraser', size: 40 },
 ];

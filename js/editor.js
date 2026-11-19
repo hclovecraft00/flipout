@@ -39,11 +39,11 @@ let wired = false;
 const prefs = loadPrefs();
 function loadPrefs() {
   const size = Object.fromEntries(PENS.map((p) => [p.id, p.size]));
-  const d = { tool: 'pencil', size, colour: '#3A3536', recent: [], swap: false };
+  const d = { tool: 'marker', size, colour: '#3A3536', recent: [], swap: false };
   try {
     const saved = JSON.parse(localStorage.getItem('flipout-prefs-v2') || '{}');
     const out = { ...d, ...saved, size: { ...size, ...(saved.size || {}) } };
-    if (!TOOLS.includes(out.tool)) out.tool = 'pencil';
+    if (!TOOLS.includes(out.tool)) out.tool = 'marker';
     return out;
   } catch { return d; }
 }
@@ -700,7 +700,7 @@ const colourName = (c) => (PALETTE.find(([h]) => h === c.toUpperCase()) || [c, c
 function setTool(t) { if (!TOOLS.includes(t)) return; prefs.tool = t; savePrefs(); updateToolUI(); }
 function setColour(c) {
   prefs.colour = c.toUpperCase();
-  if (prefs.tool === 'eraser') prefs.tool = 'pencil';
+  if (prefs.tool === 'eraser') prefs.tool = 'marker';
   savePrefs(); renderSwatches(); updateToolUI();
 }
 // Your own colours (from "+"), kept under the palette.
@@ -855,7 +855,6 @@ function drawTail(e) {
   const c = tailCtx;
   c.save();
   c.strokeStyle = prefs.colour; c.lineCap = 'round'; c.lineJoin = 'round';
-  c.globalAlpha = prefs.tool === 'pencil' ? 0.85 : 1;
   c.lineWidth = t.to.w;
   c.beginPath(); c.moveTo(t.from.x, t.from.y); c.lineTo(t.to.x, t.to.y);
   if (end !== t.to) c.lineTo(end.x, end.y);
@@ -877,46 +876,27 @@ function onUp(e) {
   if (stroke && e.pointerId === stroke.id) endStroke();
 }
 
-// Fingers never draw. Two fingers: pinch to zoom and move the paper.
-// Quick two-finger tap = undo, three-finger tap = redo.
+// Fingers never draw and never zoom. Quick two-finger tap = undo, three-finger tap = redo.
 function touchDown(e) {
-  if (touches.size === 0) gesture = { t0: performance.now(), max: 0, moved: false, palm: false, pinch: null };
-  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 0) gesture = { t0: performance.now(), max: 0, moved: false, palm: false };
+  touches.set(e.pointerId, { x0: e.clientX, y0: e.clientY });
   gesture.max = Math.max(gesture.max, touches.size);
-  if (e.width > 45 || stroke || performance.now() - lastPenAt < 400) gesture.palm = true;
+  if (stroke || performance.now() - lastPenAt < 400) gesture.palm = true;
   if ((openPop || openTray) && touches.size === 1) closePop();
-  if (touches.size === 2) startPinch();
-  else if (touches.size > 2) gesture.pinch = null;
-}
-function pinchPts() { const [a, b] = [...touches.values()]; return { cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) }; }
-function startPinch() {
-  const p = pinchPts();
-  gesture.pinch = { ...p, s0: view.s, tx0: view.tx, ty0: view.ty };
 }
 function touchMove(e) {
   const t = touches.get(e.pointerId);
-  if (!t) return;
-  t.x = e.clientX; t.y = e.clientY;
-  const g = gesture;
-  if (!g || !g.pinch || touches.size !== 2 || stroke || g.palm) return;
-  const p = pinchPts(), q = g.pinch;
-  if (Math.abs(p.d - q.d) > 12 || Math.hypot(p.cx - q.cx, p.cy - q.cy) > 12) g.moved = true;
-  if (!g.moved) return;
-  const s = Math.max(0.5, Math.min(8, q.s0 * p.d / Math.max(1, q.d)));
-  const lx = (q.cx - base.left - q.tx0) / q.s0, ly = (q.cy - base.top - q.ty0) / q.s0;
-  view = { s, tx: p.cx - base.left - lx * s, ty: p.cy - base.top - ly * s };
-  applyView();
+  if (!t || !gesture) return;
+  if (Math.hypot(e.clientX - t.x0, e.clientY - t.y0) > 14) gesture.moved = true;
 }
 function touchUp(e) {
   if (!touches.delete(e.pointerId)) return;
   const g = gesture;
-  if (touches.size === 2) startPinch();
   if (touches.size > 0 || !g) return;
   if (!g.moved && !g.palm && performance.now() - g.t0 < 350) {
     if (g.max === 2) { undo(); flashHint('Undo'); }
     else if (g.max === 3) { redo(); flashHint('Redo'); }
   }
-  if (g.moved && view.s < 1.05) resetView();
   gesture = null;
 }
 function flashHint(text) { toast(text, null, null, 700); }
@@ -931,7 +911,8 @@ function wireOnce() {
   stage.addEventListener('pointerup', onUp);
   stage.addEventListener('pointercancel', onUp);
   stage.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  // Safari's own pinch/zoom gestures: never on the drawing screen.
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
   document.addEventListener('pointerdown', (e) => {
     if (!openPop && !openTray) return;
     if (e.target.closest('.popover, .tray, [data-pop], [data-tray], #stage')) return;
@@ -1025,10 +1006,7 @@ function wireOnce() {
     if (k === 'ArrowLeft' || k === ',') goTo(P.current - 1);
     else if (k === 'ArrowRight' || k === '.') goTo(P.current + 1);
     else if (k === ' ') { e.preventDefault(); play(); }
-    else if (k === 'p') setTool('pencil');
-    else if (k === 'c') setTool('crayon');
-    else if (k === 'm') setTool('marker');
-    else if (k === 'l') setTool('oil');
+    else if (k === 'p' || k === 'm') setTool('marker');
     else if (k === 'f') setTool('fuzzy');
     else if (k === 'e') setTool('eraser');
     else if (k === 'g') setTool('bucket');

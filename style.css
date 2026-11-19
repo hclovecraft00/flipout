@@ -106,7 +106,9 @@ button { cursor: pointer; }
 .empty { font-size: 15px; }
 
 /* ---------- EDITOR ---------- */
-#editor { position: fixed; inset: 0; overflow: hidden; z-index: 1; }
+#editor { position: fixed; inset: 0; overflow: hidden; z-index: 1; touch-action: none; } /* Safari can't zoom or scroll the drawing screen */
+.tray, .layer-list { touch-action: pan-y; }
+input, select, textarea { font-size: 16px; } /* smaller text in a field makes Safari zoom in when you tap it */
 #stage { position: absolute; inset: 0; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #paper { position: absolute; left: 0; top: 0; background: var(--paper); border-radius: 6px; transform-origin: 0 0;
   box-shadow: 0 2px 0 rgba(90,58,46,0.06), 0 14px 34px rgba(90,58,46,0.16); }

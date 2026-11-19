@@ -4,15 +4,15 @@ Frame-by-frame flipbook animation for iPad and Apple Pencil, with adjustable oni
 
 **Open it:** https://hclovecraft00.github.io/flipout/ — on an iPad, tap Share › Add to Home Screen so it opens full-screen like an app.
 
-- Draw with the Pencil: pencil, crayon, marker, oil pastel, fuzzy, eraser and paint bucket. Hold a pen to see a sample line.
+- Draw with the Pencil: pen, fuzzy, eraser and paint bucket. Hold a pen to see a sample line.
 - Onion skin: choose how many frames back (pink) and forward (blue) to show, and how faint.
 - Layers (each frame has its own drawing on every layer), 12 colours plus any colour you pick.
 - Duplicate, add, copy/paste, move and delete frames. Drag along the bead string to flip through frames.
-- Fingers never draw: pinch to zoom, two-finger tap to undo, three-finger tap to redo.
+- Fingers never draw: two-finger tap to undo, three-finger tap to redo.
 - Export GIF, MP4 or PNG frames, or save a backup file of the whole project.
 - Everything is saved in the browser on your device. Nothing is uploaded.
 
-Keyboard (if one is attached): ← → frames, space play, P pencil, C crayon, M marker, L oil pastel, F fuzzy, E eraser, G bucket, O onion skin, N new frame, D duplicate, ⌘Z undo, ⇧⌘Z redo.
+Keyboard (if one is attached): ← → frames, space play, P pen, F fuzzy, E eraser, G bucket, O onion skin, N new frame, D duplicate, ⌘Z undo, ⇧⌘Z redo.
 
 ## Files
 
