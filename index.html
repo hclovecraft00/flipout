@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Flipout">
+<meta name="theme-color" content="#E4F1F5">
+<title>Flipout</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preload" href="fonts/mochiy-pop-one.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/mplus-rounded-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="monkey" viewBox="0 0 48 48">
+      <circle cx="8.5" cy="24" r="6" fill="#8A5A44"/><circle cx="39.5" cy="24" r="6" fill="#8A5A44"/>
+      <circle cx="8.5" cy="24" r="3" fill="#F7B9C8"/><circle cx="39.5" cy="24" r="3" fill="#F7B9C8"/>
+      <circle cx="24" cy="23" r="16" fill="#8A5A44"/>
+      <path d="M12 27c0-6 5-9 8-7 2 1 2 1 4 0 3-2 12 1 12 7 0 6-5 10-12 10s-12-4-12-10z" fill="#F7D9CC"/>
+      <circle cx="19" cy="25.5" r="1.8" fill="#3A2A24"/><circle cx="29" cy="25.5" r="1.8" fill="#3A2A24"/>
+      <path d="M21.2 31q2.8 2.2 5.6 0" stroke="#3A2A24" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <circle cx="15.5" cy="30" r="2.1" fill="#EF6F8E" opacity=".55"/><circle cx="32.5" cy="30" r="2.1" fill="#EF6F8E" opacity=".55"/>
+    </symbol>
+    <symbol id="pen-pencil" viewBox="0 0 34 34"><g transform="rotate(-45 17 17)" stroke="#5A3A2E" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="13" width="4" height="8" rx="1.5" fill="#F9C5D5"/><rect x="7" y="13" width="15" height="8" fill="#F7DC6F"/><path d="M22 13l8 4-8 4z" fill="#F4DCC0"/><path d="M27.4 15.7L30 17l-2.6 1.3z" fill="#5A3A2E"/></g></symbol>
+    <symbol id="pen-crayon" viewBox="0 0 34 34"><g transform="rotate(-45 17 17)" stroke="#5A3A2E" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="12" width="18" height="10" rx="3.5" fill="#BFE3F2"/><path d="M9 12v10M14 12v10" stroke-dasharray="2 2"/><path d="M21 13.5l7 2v3l-7 2z" fill="#6BBFE3"/></g></symbol>
+    <symbol id="pen-marker" viewBox="0 0 34 34"><g transform="rotate(-45 17 17)" stroke="#5A3A2E" stroke-width="1.8" stroke-linejoin="round"><rect x="2" y="12" width="13" height="10" rx="4" fill="#DCD0F5"/><rect x="15" y="13" width="7" height="8" rx="1.5" fill="#fff"/><path d="M22 14.5l7 1.5v2l-7 1.5z" fill="#5A3A2E"/></g></symbol>
+    <symbol id="pen-oil" viewBox="0 0 34 34"><g transform="rotate(-45 17 17)" stroke="#5A3A2E" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="10.5" width="22" height="13" rx="6.5" fill="#F59E78"/><rect x="8" y="10.5" width="10" height="13" fill="#FFF6E5"/><path d="M10 13.5h6M10 17h6M10 20.5h6" stroke-width="1" stroke-dasharray="1.5 1.5"/></g></symbol>
+    <symbol id="pen-fuzzy" viewBox="0 0 34 34"><g fill="#EF6F8E"><circle cx="17" cy="17" r="2.2"/><circle cx="11" cy="14" r="1.6"/><circle cx="22" cy="12" r="1.5"/><circle cx="13" cy="21" r="1.8"/><circle cx="21" cy="21" r="1.6"/><circle cx="25" cy="17" r="1.2"/><circle cx="8" cy="19" r="1"/><circle cx="17" cy="9" r="1.2"/><circle cx="17" cy="25" r="1.1"/><circle cx="26" cy="23" r=".9"/><circle cx="9" cy="10" r=".9"/></g></symbol>
+    <symbol id="pen-eraser" viewBox="0 0 34 34"><g transform="rotate(-35 17 17)" stroke="#5A3A2E" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="11" width="24" height="12" rx="3" fill="#F9C5D5"/><rect x="13" y="11" width="7" height="12" fill="#BFE3F2"/></g></symbol>
+    <symbol id="pen-bucket" viewBox="0 0 34 34"><g stroke="#5A3A2E" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M7 13l10-7 9 12-10 7z" fill="#C6EBD6"/><path d="M7 13c2 4 6 9 9 12" fill="none"/><path d="M12 9.5c-2.5-3 -1-6 2-5" fill="none"/><path d="M27 21c0 2 1.6 3.4 1.6 5a1.6 1.6 0 0 1-3.2 0c0-1.6 1.6-3 1.6-5z" fill="#EF6F8E"/></g></symbol>
+  </defs>
+</svg>
+
+<!-- ============ HOME ============ -->
+<section id="home" class="view">
+  <header class="home-head">
+    <h1><svg class="home-monkey" aria-hidden="true"><use href="#monkey"/></svg>Flipout</h1>
+    <div class="home-actions">
+      <button id="btn-open-backup" class="patch btn" style="--fill: var(--sky)">Open backup</button>
+      <button id="btn-new" class="patch btn" style="--fill: var(--lemon)">
+        <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        New animation
+      </button>
+    </div>
+  </header>
+  <p class="home-note" id="home-note">Your animations are saved in this browser on this device. Now and then, open one and choose Export › Backup file, in case the browser clears its storage.</p>
+  <ul id="project-list" class="project-list" aria-label="Your animations"></ul>
+  <p id="empty-state" class="empty" hidden>No animations yet. Tap <strong>New animation</strong> to start your first flipbook.</p>
+  <input id="backup-input" type="file" hidden>
+</section>
+
+<!-- ============ EDITOR ============ -->
+<section id="editor" class="view" hidden>
+  <div id="stage">
+    <div id="paper">
+      <span class="tape l" aria-hidden="true"></span><span class="tape r" aria-hidden="true"></span>
+      <canvas id="onion"></canvas>
+      <div id="layer-stack"></div>
+      <canvas id="playback" hidden></canvas>
+    </div>
+  </div>
+
+  <div class="patch titlebar" style="--fill: var(--lemon)">
+    <button id="btn-back" class="blob" aria-label="Back to your animations">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <svg class="title-monkey" aria-hidden="true"><use href="#monkey"/></svg>
+    <div class="title-text">
+      <button id="btn-rename" class="title-name">Untitled</button>
+      <span id="save-state" class="small">Saved</span>
+    </div>
+  </div>
+
+  <nav class="patch toolbar" style="--fill: var(--pink)" aria-label="Tools">
+    <button id="btn-pens" class="blob only-portrait" data-tray="tray-pens" aria-label="Pens">
+      <svg class="pen-ico" aria-hidden="true"><use id="btn-pens-use" href="#pen-pencil"/></svg>
+    </button>
+    <button id="btn-colours" class="blob only-portrait" data-tray="tray-colours" aria-label="Colours">
+      <span id="colour-dot" class="colour-dot"></span>
+    </button>
+    <span class="sep only-portrait"></span>
+    <button id="btn-undo" class="blob" aria-label="Undo">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+    </button>
+    <button id="btn-redo" class="blob" aria-label="Redo">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+    </button>
+    <span class="sep"></span>
+    <button id="btn-onion" class="blob onion-btn" aria-label="Onion skin settings" data-pop="pop-onion">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="12" r="6" class="onion-back"/><circle cx="15" cy="12" r="6" class="onion-fwd"/></svg>
+    </button>
+    <button id="btn-layers" class="blob" aria-label="Layers" data-pop="pop-layers">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+    </button>
+    <button id="btn-settings" class="blob" aria-label="Settings" data-pop="pop-settings">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+    </button>
+  </nav>
+
+  <div class="actions">
+    <button id="btn-play" class="patch play" style="--fill: var(--mint)" aria-label="Play">
+      <svg id="ico-play" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5.5c0-1 1.1-1.6 2-1.1l9.5 6.5c.8.5.8 1.7 0 2.2L10 19.6c-.9.5-2-.1-2-1.1z"/></svg>
+      <svg id="ico-stop" aria-hidden="true" viewBox="0 0 24 24" hidden><rect x="6" y="6" width="12" height="12" rx="3"/></svg>
+    </button>
+    <button id="btn-export" class="patch btn" style="--fill: var(--sky)">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 14v6h14v-6"/></svg>
+      Export
+    </button>
+  </div>
+
+  <aside id="tray-pens" class="patch tray pens" style="--fill: var(--lilac)" aria-label="Pens">
+    <div class="pen-list">
+      <button class="pen tool" data-tool="pencil" aria-label="Pencil" aria-pressed="false"><svg aria-hidden="true"><use href="#pen-pencil"/></svg></button>
+      <button class="pen tool" data-tool="crayon" aria-label="Crayon" aria-pressed="false"><svg aria-hidden="true"><use href="#pen-crayon"/></svg></button>
+      <button class="pen tool" data-tool="marker" aria-label="Marker" aria-pressed="false"><svg aria-hidden="true"><use href="#pen-marker"/></svg></button>
+      <button class="pen tool" data-tool="oil" aria-label="Oil pastel" aria-pressed="false"><svg aria-hidden="true"><use href="#pen-oil"/></svg></button>
+      <button class="pen tool" data-tool="fuzzy" aria-label="Fuzzy" aria-pressed="false"><svg aria-hidden="true"><use href="#pen-fuzzy"/></svg></button>
+      <button class="pen tool" data-tool="eraser" aria-label="Eraser" aria-pressed="false"><svg aria-hidden="true"><use href="#pen-eraser"/></svg></button>
+      <button class="pen tool" data-tool="bucket" aria-label="Paint bucket" aria-pressed="false"><svg aria-hidden="true"><use href="#pen-bucket"/></svg></button>
+    </div>
+    <div class="size-wrap">
+      <span class="size-dot-box"><span id="size-dot" class="size-dot"></span></span>
+      <input id="size-range" type="range" min="2" max="64" value="8" aria-label="Size">
+      <output id="size-val" for="size-range">8</output>
+    </div>
+  </aside>
+
+  <aside id="tray-colours" class="patch tray colours" style="--fill: var(--mint)" aria-label="Colours">
+    <div id="palette" class="swatches"></div>
+    <div id="recent" class="swatches"></div>
+    <label class="sw add" title="Pick any colour"><span aria-hidden="true">+</span><input id="colour-input" type="color" value="#3a3536" aria-label="Pick any colour"></label>
+  </aside>
+
+  <div id="pen-tip" class="patch pen-tip" style="--fill: #FFF6E5" hidden>
+    <strong id="pen-tip-name">Pencil</strong>
+    <canvas id="pen-tip-canvas" width="360" height="90"></canvas>
+  </div>
+
+  <div class="patch scrubber" style="--fill: #FFF6E5">
+    <span id="frame-count" class="frame-count">1 / 1</span>
+    <div id="ticks" class="ticks" role="slider" aria-label="Frames" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1" tabindex="0"></div>
+    <button id="btn-fps" class="chip" data-pop="pop-fps">12 fps</button>
+    <button id="btn-dup" class="blob" aria-label="Duplicate frame">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
+    </button>
+    <button id="btn-add" class="blob add-bead" aria-label="Add blank frame">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button id="btn-frame-menu" class="blob" aria-label="More frame actions" data-pop="pop-frame">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
+    </button>
+  </div>
+
+  <!-- popovers -->
+  <div id="pop-onion" class="popover" hidden>
+    <div class="pop-row"><span class="pop-title">Onion skin</span><button id="onion-on" class="switch" role="switch" aria-checked="true" aria-label="Onion skin on"><span></span></button></div>
+    <div class="pop-row"><span class="label-dot"><i class="dot red"></i>Frames back</span>
+      <div class="stepper"><button data-step="back" data-d="-1" aria-label="Fewer frames back">−</button><output id="onion-back">1</output><button data-step="back" data-d="1" aria-label="More frames back">+</button></div></div>
+    <div class="pop-row"><span class="label-dot"><i class="dot blue"></i>Frames forward</span>
+      <div class="stepper"><button data-step="fwd" data-d="-1" aria-label="Fewer frames forward">−</button><output id="onion-fwd">0</output><button data-step="fwd" data-d="1" aria-label="More frames forward">+</button></div></div>
+    <div class="pop-row"><label for="onion-opacity">How faint</label><span id="onion-opacity-val" class="soft">35%</span></div>
+    <input id="onion-opacity" type="range" min="5" max="80" value="35">
+    <div class="pop-row"><span>Pink/blue tint<br><span class="soft small">Off = faint copies in their own colours</span></span><button id="onion-tint" class="switch" role="switch" aria-checked="true" aria-label="Pink and blue tint"><span></span></button></div>
+  </div>
+
+  <div id="pop-layers" class="popover wide" hidden>
+    <div class="pop-row"><span class="pop-title">Layers</span><button id="layer-add" class="blob" aria-label="Add layer"><svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    <ul id="layer-list" class="layer-list"></ul>
+    <p class="soft small">Each frame has its own drawing on every layer. Tap a layer to draw on it. Top of the list is the front.</p>
+  </div>
+
+  <div id="pop-fps" class="popover" hidden>
+    <div class="pop-row"><label for="fps-range" class="pop-title">Speed</label><span id="fps-val" class="soft">12 fps</span></div>
+    <input id="fps-range" type="range" min="1" max="30" value="12">
+    <div class="chips" id="fps-presets"></div>
+  </div>
+
+  <div id="pop-frame" class="popover menu" hidden>
+    <button data-act="copy">Copy frame</button>
+    <button data-act="paste">Paste as new frame after this one</button>
+    <button data-act="left">Move frame earlier</button>
+    <button data-act="right">Move frame later</button>
+    <button data-act="clear">Clear this layer on this frame</button>
+    <button data-act="delete" class="danger">Delete frame</button>
+  </div>
+
+  <div id="pop-settings" class="popover" hidden>
+    <div class="pop-row"><span class="pop-title">Settings</span></div>
+    <div class="pop-row"><span>Pens on the right<br><span class="soft small">For drawing with your left hand</span></span><button id="set-swap" class="switch" role="switch" aria-checked="false" aria-label="Pens on the right"><span></span></button></div>
+  </div>
+
+  <button id="btn-fit" class="patch btn fit-btn" style="--fill: #FFF6E5" hidden>Fit to screen</button>
+</section>
+
+<!-- ============ DIALOGS ============ -->
+<dialog id="dlg-new" class="sheet">
+  <form method="dialog" id="form-new">
+    <h2>New animation</h2>
+    <label class="field"><span>Name</span><input id="new-name" type="text" autocomplete="off" required></label>
+    <fieldset class="shapes">
+      <legend>Shape</legend>
+      <label><input type="radio" name="aspect" value="1:1"><span class="shape" style="aspect-ratio:1/1"></span>Square</label>
+      <label><input type="radio" name="aspect" value="4:5" checked><span class="shape" style="aspect-ratio:4/5"></span>4:5 portrait</label>
+      <label><input type="radio" name="aspect" value="9:16"><span class="shape" style="aspect-ratio:9/16"></span>9:16 Reels</label>
+      <label><input type="radio" name="aspect" value="4:3"><span class="shape" style="aspect-ratio:4/3"></span>Landscape</label>
+    </fieldset>
+    <div class="sheet-actions">
+      <button value="cancel" formnovalidate class="patch btn" style="--fill: #fff">Cancel</button>
+      <button value="ok" class="patch btn" style="--fill: var(--lemon)">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-export" class="sheet">
+  <h2>Export</h2>
+  <div class="export-list">
+    <div class="export-item" style="--tint: var(--pink)">
+      <div><strong>GIF</strong><span class="small">Loops forever. Good for chats and the web.</span></div>
+      <div class="seg" id="gif-size" role="radiogroup" aria-label="GIF size">
+        <button role="radio" aria-checked="true" data-v="0.5">Small</button>
+        <button role="radio" aria-checked="false" data-v="1">Full size</button>
+      </div>
+      <button class="patch btn" style="--fill: #fff" data-make="gif">Make GIF</button>
+    </div>
+    <div class="export-item" style="--tint: var(--lilac)">
+      <div><strong>MP4 video</strong><span class="small">For Reels, Stories and anywhere video goes.</span></div>
+      <div class="seg" id="mp4-len" role="radiogroup" aria-label="Video length">
+        <button role="radio" aria-checked="false" data-v="once">Once</button>
+        <button role="radio" aria-checked="false" data-v="x3">3 loops</button>
+        <button role="radio" aria-checked="false" data-v="5s">5 s</button>
+        <button role="radio" aria-checked="true" data-v="10s">10 s</button>
+        <button role="radio" aria-checked="false" data-v="15s">15 s</button>
+      </div>
+      <button class="patch btn" style="--fill: #fff" data-make="mp4">Make video</button>
+    </div>
+    <div class="export-item" style="--tint: var(--mint)">
+      <div><strong>PNG frames</strong><span class="small">Every frame as its own image, on white.</span></div>
+      <button class="patch btn" style="--fill: #fff" data-make="png">Make PNGs</button>
+    </div>
+    <div class="export-item" style="--tint: var(--sky)">
+      <div><strong>Backup file</strong><span class="small">The whole project, with layers. Save it to Files or iCloud, then open it again from the home screen.</span></div>
+      <button class="patch btn" style="--fill: #fff" data-make="backup">Make backup</button>
+    </div>
+  </div>
+  <div id="export-status" class="export-status" hidden>
+    <div class="progress"><span id="export-bar"></span></div>
+    <p id="export-msg" class="small">Working…</p>
+    <button id="export-save" class="patch btn" style="--fill: var(--lemon)" hidden>Save</button>
+  </div>
+  <div class="sheet-actions"><button id="export-close" class="patch btn" style="--fill: #fff">Close</button></div>
+</dialog>
+
+<div id="toast" class="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

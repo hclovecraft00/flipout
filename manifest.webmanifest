@@ -1,0 +1,16 @@
+{
+  "name": "Flipout",
+  "short_name": "Flipout",
+  "description": "Frame-by-frame flipbook animation with onion skinning. No watermark.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#E6E6E9",
+  "theme_color": "#E6E6E9",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
