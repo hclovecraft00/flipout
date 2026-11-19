@@ -50,7 +50,7 @@ button { cursor: pointer; }
   position: relative; background: var(--fill, var(--cream)); border: 0; border-radius: 26px;
   box-shadow: 0 2px 0 rgba(90,58,46,0.12), 0 10px 22px rgba(90,58,46,0.08);
 }
-.patch::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background-image: var(--noise); opacity: 0.3; mix-blend-mode: multiply; pointer-events: none; }
+.patch::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background-image: var(--noise); opacity: 0.22; pointer-events: none; }
 .patch::after { content: ""; position: absolute; inset: 5px; border: 2px dashed var(--stitch); border-radius: 21px; pointer-events: none; }
 .patch > * { position: relative; z-index: 1; }
 

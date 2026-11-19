@@ -16,7 +16,7 @@ const PALETTE_SET = new Set(PALETTE.map(([h]) => h));
 const TOOLS = [...PENS.map((p) => p.id), 'bucket'];
 const COMPACT = matchMedia('(max-width: 900px), (orientation: portrait)');
 const MAX_LAYERS = 8;
-const UNDO_BYTES = 160e6, UNDO_STEPS = 60;
+const UNDO_BYTES = 100e6, UNDO_STEPS = 60;
 
 // ---------- state ----------
 let P = null;                 // project details (saved)
@@ -142,8 +142,8 @@ function applyView() {
 }
 function resetView() { view = { s: 1, tx: 0, ty: 0 }; applyView(); }
 
-function toCanvas(e) {
-  const r = $('paper').getBoundingClientRect();
+function toCanvas(e, rect) {
+  const r = rect || $('paper').getBoundingClientRect();
   return { x: (e.clientX - r.left) / r.width * P.w, y: (e.clientY - r.top) / r.height * P.h };
 }
 
@@ -221,6 +221,36 @@ export function getFlat(i) {
 }
 
 // ---------- saving ----------
+// PNGs are made by a background helper (js/png-worker.js) so saving never pauses the Pencil.
+// Until the helper has proved it works on this device, the slower built-in way is used.
+let pngWorker = null, workerReady = false, jobId = 0;
+const jobs = new Map();
+(function startPngWorker() {
+  try {
+    if (typeof OffscreenCanvas === 'undefined' || !('convertToBlob' in OffscreenCanvas.prototype) || typeof Worker === 'undefined') return;
+    pngWorker = new Worker('js/png-worker.js');
+    pngWorker.onmessage = (e) => {
+      const j = jobs.get(e.data.id);
+      if (!j) return;
+      jobs.delete(e.data.id);
+      if (e.data.blob) j.resolve(e.data.blob); else j.reject(new Error(e.data.error || 'Could not save'));
+    };
+    pngWorker.onerror = () => { workerReady = false; for (const j of jobs.values()) j.reject(new Error('Save helper stopped')); jobs.clear(); };
+    const test = makeCanvas(2, 2);
+    test.getContext('2d').fillRect(0, 0, 1, 1);
+    workerEncode(test).then((b) => { workerReady = b.size > 0; }).catch(() => { workerReady = false; });
+  } catch { pngWorker = null; }
+})();
+function workerEncode(canvas) {
+  const snapshot = createImageBitmap(canvas); // the picture is copied now, before anything else is drawn
+  return snapshot.then((bitmap) => new Promise((resolve, reject) => {
+    const id = ++jobId;
+    jobs.set(id, { resolve, reject });
+    pngWorker.postMessage({ id, bitmap }, [bitmap]);
+  }));
+}
+function encodePNG(canvas) { return workerReady ? workerEncode(canvas) : canvasToBlob(canvas); }
+
 function track(promise) {
   inFlight.add(promise);
   setSaveState();
@@ -231,15 +261,16 @@ function track(promise) {
   return promise;
 }
 function setSaveState() {
-  const busy = inFlight.size > 0 || dirty.size > 0;
-  $('save-state').textContent = busy ? 'Saving…' : 'Saved';
+  const text = inFlight.size > 0 || dirty.size > 0 ? 'Saving…' : 'Saved';
+  const el = $('save-state');
+  if (el.textContent !== text) el.textContent = text;
 }
 async function waitForSaves() { while (inFlight.size) await Promise.allSettled([...inFlight]); }
 
 function scheduleSave() {
   setSaveState();
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { if (!stroke) flushCurrent(); else scheduleSave(); }, 1200);
+  saveTimer = setTimeout(() => { if (!stroke) flushCurrent(); else scheduleSave(); }, 2000);
 }
 
 // Save changed layers of the frame on screen. The picture is copied right away,
@@ -252,7 +283,7 @@ function flushCurrent() {
     const canvas = live.get(lid)?.canvas;
     if (!canvas) continue;
     const entry = { blob: null, pending: null };
-    entry.pending = canvasToBlob(canvas).then((blob) => { entry.blob = blob; entry.pending = null; return blob; });
+    entry.pending = encodePNG(canvas).then((blob) => { entry.blob = blob; entry.pending = null; return blob; });
     cells.set(key(fid, lid), entry);
     track(entry.pending.then((blob) => store.putCell(P.id, fid, lid, blob)));
   }
@@ -295,14 +326,18 @@ function beginStroke(e) {
   const { canvas, ctx } = live.get(layer.id);
   const pt = toCanvas(e);
   if (prefs.tool === 'bucket') {
-    brush.snapshot(canvas);
-    const box = floodFill(ctx, P.w, P.h, pt.x, pt.y, prefs.colour);
-    if (box) { pushPaint(layer.id, box); markDirty(layer.id); }
+    const res = floodFill(ctx, P.w, P.h, pt.x, pt.y, prefs.colour);
+    if (res) {
+      const box = { x: res.x, y: res.y, w: res.w, h: res.h };
+      pushUndo({ type: 'paint', fid: curFid(), lid: layer.id, box, before: imageCanvas(res.before), after: imageCanvas(res.after), bytes: box.w * box.h * 8 });
+      markDirty(layer.id);
+    }
     return;
   }
   brush.begin(canvas, prefs.tool, prefs.colour);
-  stroke = { id: e.pointerId, lid: layer.id };
+  stroke = { id: e.pointerId, lid: layer.id, rect: $('paper').getBoundingClientRect() };
   brush.point(pt.x, pt.y, strokeWidth(e));
+  brush.flush();
 }
 
 function addPoint(x, y, w) { brush.point(x, y, w); }
@@ -317,18 +352,37 @@ function endStroke() {
 
 // ---------- undo ----------
 function pushPaint(lid, box) {
-  const before = brush.backup.getContext('2d').getImageData(box.x, box.y, box.w, box.h);
-  const after = live.get(lid).ctx.getImageData(box.x, box.y, box.w, box.h);
+  const before = regionCopy(brush.backup, box);
+  const after = regionCopy(live.get(lid).canvas, box);
   pushUndo({ type: 'paint', fid: curFid(), lid, box, before, after, bytes: box.w * box.h * 8 });
 }
 function pushUndo(entry) {
   undoStack.push(entry);
+  redoStack.forEach(dropBitmaps);
   redoStack = [];
   let total = undoStack.reduce((n, e) => n + (e.bytes || 0), 0);
   while (undoStack.length > UNDO_STEPS || (total > UNDO_BYTES && undoStack.length > 1)) {
-    total -= undoStack.shift().bytes || 0;
+    const old = undoStack.shift();
+    total -= old.bytes || 0;
+    dropBitmaps(old);
   }
   updateUndoUI();
+}
+// Undo copies stay on the graphics chip (a canvas-to-canvas copy). Reading pixels back
+// (getImageData) made Safari stop and wait at the end of every stroke.
+function regionCopy(src, box) {
+  const c = makeCanvas(box.w, box.h);
+  c.getContext('2d').drawImage(src, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+  return c;
+}
+function imageCanvas(img) {
+  const c = makeCanvas(img.width, img.height);
+  c.getContext('2d').putImageData(img, 0, 0);
+  return c;
+}
+function dropBitmaps(e) {
+  if (e.type !== 'paint') return;
+  for (const k of ['before', 'after']) if (e[k]) e[k].width = 0;
 }
 async function undo() { await step(undoStack, redoStack, 'before'); }
 async function redo() { await step(redoStack, undoStack, 'after'); }
@@ -341,7 +395,13 @@ async function step(from, to, which) {
     const idx = P.frames.indexOf(e.fid);
     if (idx >= 0 && live.has(e.lid)) {
       if (idx !== P.current) await goTo(idx);
-      live.get(e.lid).ctx.putImageData(e[which], e.box.x, e.box.y);
+      const img = e[which];
+      const ctx = live.get(e.lid).ctx;
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.clearRect(e.box.x, e.box.y, e.box.w, e.box.h);
+      ctx.drawImage(img, e.box.x, e.box.y);
+      ctx.restore();
       markDirty(e.lid);
     }
   } else {
@@ -433,9 +493,10 @@ const frameActions = {
   clear: () => {
     const l = activeLayer();
     const { ctx, canvas } = live.get(l.id);
-    brush.snapshot(canvas);
+    const box = { x: 0, y: 0, w: P.w, h: P.h };
+    const before = regionCopy(canvas, box);
     ctx.clearRect(0, 0, P.w, P.h);
-    pushPaint(l.id, { x: 0, y: 0, w: P.w, h: P.h });
+    pushUndo({ type: 'paint', fid: curFid(), lid: l.id, box, before, after: makeCanvas(P.w, P.h), bytes: P.w * P.h * 8 });
     markDirty(l.id);
   },
   delete: async () => {
@@ -768,9 +829,10 @@ function onMove(e) {
   if (e.pointerType === 'pen') lastPenAt = performance.now();
   const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
   for (const ev of (list.length ? list : [e])) {
-    const pt = toCanvas(ev);
+    const pt = toCanvas(ev, stroke.rect);
     addPoint(pt.x, pt.y, strokeWidth(ev));
   }
+  brush.flush();
 }
 function onUp(e) {
   if (e.pointerType === 'touch') { touchUp(e); return; }

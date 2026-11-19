@@ -56,6 +56,7 @@ export function floodFill(ctx, W, H, sx, sy, hex) {
   const bx = Math.max(0, minX - pad), by = Math.max(0, minY - pad);
   const ex = Math.min(W - 1, maxX + pad), ey = Math.min(H - 1, maxY + pad);
   const m = pad ? dilate(mask, W, H, pad, bx, by, ex, ey) : mask;
+  const before = region(d, W, bx, by, ex - bx + 1, ey - by + 1); // for undo
 
   for (let y = by; y <= ey; y++) {
     for (let x = bx; x <= ex; x++) {
@@ -76,7 +77,15 @@ export function floodFill(ctx, W, H, sx, sy, hex) {
   }
   const box = { x: bx, y: by, w: ex - bx + 1, h: ey - by + 1 };
   ctx.putImageData(img, 0, 0, box.x, box.y, box.w, box.h);
-  return box;
+  // Undo copies come from the pixels we already have. (Copying the canvas instead
+  // can catch the after-fill picture in Safari, which delays canvas copies.)
+  return { ...box, before, after: region(d, W, box.x, box.y, box.w, box.h) };
+}
+
+function region(d, W, x, y, w, h) {
+  const out = new ImageData(w, h);
+  for (let r = 0; r < h; r++) out.data.set(d.subarray(((y + r) * W + x) * 4, ((y + r) * W + x + w) * 4), r * w * 4);
+  return out;
 }
 
 // Line pixels, grown by GAP so small holes in grainy strokes count as closed.

@@ -44,13 +44,20 @@ export class Brush {
     GRAIN = GRAIN || { pencil: grainTile('pencil'), crayon: grainTile('crayon'), oil: grainTile('oil') };
     this.w = w; this.h = h;
     this.backup = mk(w, h); this.buf = mk(w, h); this.tmp = mk(w, h);
-    const t = this.tmp.getContext('2d');
-    this.pat = {};
-    for (const k of Object.keys(GRAIN)) {
-      const p = t.createPattern(GRAIN[k], 'repeat');
-      if (grainScale !== 1 && p.setTransform) p.setTransform(new DOMMatrix().scale(grainScale));
-      this.pat[k] = p;
+    this.grainScale = grainScale;
+    this.sheets = {}; // a page-sized sheet of grain per pen, made the first time that pen is used
+  }
+
+  // Drawing through a ready-made sheet is a fast copy in Safari; a pattern fill is slow.
+  sheet(pen) {
+    if (!this.sheets[pen]) {
+      const c = mk(this.w, this.h), x = c.getContext('2d');
+      const p = x.createPattern(GRAIN[pen], 'repeat');
+      if (this.grainScale !== 1 && p.setTransform) p.setTransform(new DOMMatrix().scale(this.grainScale));
+      x.fillStyle = p; x.fillRect(0, 0, this.w, this.h);
+      this.sheets[pen] = c;
     }
+    return this.sheets[pen];
   }
 
   // Copy of the layer before a change (used for undo, and under grainy strokes).
@@ -65,8 +72,9 @@ export class Brush {
     this.pen = pen; this.colour = colour; this.pts = [];
     this.textured = TEXTURED.has(pen);
     this.box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    this.dirty = null;
     this.snapshot(canvas);
-    if (this.textured) this.buf.getContext('2d').clearRect(0, 0, this.w, this.h);
+    if (this.textured) { this.sheet(pen); this.buf.getContext('2d').clearRect(0, 0, this.w, this.h); }
   }
 
   point(x, y, w) {
@@ -90,6 +98,7 @@ export class Brush {
       const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, w: (a.w + b.w) / 2 };
       this.curve(m, m, b);
     }
+    this.flush();
     this.pts = [];
     const b = this.box;
     if (!isFinite(b.x0)) return null;
@@ -114,7 +123,7 @@ export class Brush {
     if (len < 0.5) {
       ctx.beginPath(); ctx.arc(c.x, c.y, c.w / 2, 0, Math.PI * 2); ctx.fill();
     } else {
-      const steps = Math.max(1, Math.min(16, Math.ceil(len / 2)));
+      const steps = Math.max(1, Math.min(12, Math.ceil(len / 3)));
       let px = a.x, py = a.y;
       for (let i = 1; i <= steps; i++) {
         const t = i / steps, u = 1 - t;
@@ -137,7 +146,19 @@ export class Brush {
     ctx.restore();
     const r = Math.max(a.w, c.w) * (this.pen === 'oil' ? 0.75 : 0.5) + 3;
     this.grow(minX - r, minY - r, maxX + r, maxY + r);
-    if (this.textured) this.composite(minX - r, minY - r, maxX - minX + 2 * r, maxY - minY + 2 * r);
+    if (this.textured) {
+      const d = this.dirty;
+      const x0 = minX - r, y0 = minY - r, x1 = maxX + r, y1 = maxY + r;
+      this.dirty = d ? { x0: Math.min(d.x0, x0), y0: Math.min(d.y0, y0), x1: Math.max(d.x1, x1), y1: Math.max(d.y1, y1) } : { x0, y0, x1, y1 };
+    }
+  }
+
+  // Show the grainy stroke drawn so far. Call once per batch of points (once per screen refresh).
+  flush() {
+    const d = this.dirty;
+    if (!d) return;
+    this.dirty = null;
+    this.composite(d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0);
   }
 
   // The stroke so far, through the paper grain, laid over the layer as it was before the stroke.
@@ -149,7 +170,7 @@ export class Brush {
     t.clearRect(x, y, w, h);
     t.drawImage(this.buf, x, y, w, h, x, y, w, h);
     t.globalCompositeOperation = 'destination-in';
-    t.fillStyle = this.pat[this.pen]; t.fillRect(x, y, w, h);
+    t.drawImage(this.sheets[this.pen], x, y, w, h, x, y, w, h);
     t.globalCompositeOperation = 'source-over';
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
