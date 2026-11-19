@@ -113,6 +113,17 @@ $('backup-input').onchange = async (e) => {
 
 renderHome().catch((e) => { console.error(e); toast('This browser won’t let Flipout save drawings. Is it a private window?'); });
 
+// If the page ever gets zoomed (e.g. a double tap), snap it back to normal size.
+const viewportMeta = document.querySelector('meta[name=viewport]');
+const baseViewport = viewportMeta.content;
+function unzoom() {
+  if (!window.visualViewport || window.visualViewport.scale <= 1.01) return;
+  viewportMeta.content = baseViewport + ', minimum-scale=1';
+  requestAnimationFrame(() => { viewportMeta.content = baseViewport; });
+}
+if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(unzoom, 250));
+document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

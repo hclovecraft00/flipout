@@ -90,6 +90,15 @@ export class Brush {
     else this.curve(mid(pts[n - 3], pts[n - 2]), pts[n - 2], mid(pts[n - 2], pts[n - 1]));
   }
 
+  // The bit between where the smooth curve stops and the newest point. Smoothing always lags
+  // one point behind, so the editor draws this bit straight away as a temporary tail.
+  tail() {
+    const pts = this.pts, n = pts.length;
+    if (this.pen === 'fuzzy' || this.pen === 'eraser' || n < 2) return null;
+    const a = pts[n - 2], b = pts[n - 1];
+    return { from: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, w: (a.w + b.w) / 2 }, to: b };
+  }
+
   // Finish the stroke. Returns the area it changed (for undo), or null.
   end() {
     const pts = this.pts;

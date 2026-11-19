@@ -32,7 +32,7 @@ let stroke = null, penSeen = false, lastPenAt = 0;
 let view = { s: 1, tx: 0, ty: 0 }, base = { left: 0, top: 0, w: 0, h: 0 };
 let saveTimer = null, metaTimer = null, inFlight = new Set();
 let clipboard = null;
-let brush, onionCtx, playCtx, tintCanvas, tintCtx;
+let brush, onionCtx, playCtx, tintCanvas, tintCtx, tailCtx, tailBox = null;
 let openPop = null, openTray = null;
 let wired = false;
 
@@ -73,7 +73,8 @@ export async function openEditor(meta, exitCallback) {
   }
   store.deleteCells(P.id, orphans).catch(() => {});
 
-  for (const id of ['onion', 'playback']) { const c = $(id); c.width = P.w; c.height = P.h; }
+  for (const id of ['onion', 'playback', 'ink-tail']) { const c = $(id); c.width = P.w; c.height = P.h; }
+  tailCtx = $('ink-tail').getContext('2d'); tailBox = null;
   onionCtx = $('onion').getContext('2d');
   playCtx = $('playback').getContext('2d');
   brush = new Brush(P.w, P.h, P.w / 800);
@@ -346,6 +347,7 @@ function endStroke() {
   if (!stroke) return;
   const s = stroke;
   stroke = null;
+  clearTail();
   const box = brush.end();
   if (box) { pushPaint(s.lid, box); markDirty(s.lid); }
 }
@@ -833,6 +835,42 @@ function onMove(e) {
     addPoint(pt.x, pt.y, strokeWidth(ev));
   }
   brush.flush();
+  drawTail(e);
+}
+
+// Draw the newest stretch of the stroke straight to the Pencil tip (and a little ahead,
+// where Safari predicts the Pencil is going), so the line keeps up with the Pencil.
+function drawTail(e) {
+  clearTail();
+  const t = brush.tail();
+  if (!t) return;
+  let end = t.to;
+  const pred = e.getPredictedEvents ? e.getPredictedEvents() : [];
+  if (pred.length) {
+    const q = toCanvas(pred[pred.length - 1], stroke.rect);
+    const step = Math.hypot(t.to.x - t.from.x, t.to.y - t.from.y) * 2 + 4;
+    const d = Math.hypot(q.x - t.to.x, q.y - t.to.y);
+    if (d > 0 && d < step * 3) end = { x: q.x, y: q.y, w: t.to.w };
+  }
+  const c = tailCtx;
+  c.save();
+  c.strokeStyle = prefs.colour; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.globalAlpha = prefs.tool === 'pencil' ? 0.85 : 1;
+  c.lineWidth = t.to.w;
+  c.beginPath(); c.moveTo(t.from.x, t.from.y); c.lineTo(t.to.x, t.to.y);
+  if (end !== t.to) c.lineTo(end.x, end.y);
+  c.stroke();
+  c.restore();
+  const r = t.to.w / 2 + 3;
+  tailBox = {
+    x: Math.min(t.from.x, t.to.x, end.x) - r, y: Math.min(t.from.y, t.to.y, end.y) - r,
+    x1: Math.max(t.from.x, t.to.x, end.x) + r, y1: Math.max(t.from.y, t.to.y, end.y) + r,
+  };
+}
+function clearTail() {
+  if (!tailBox) return;
+  tailCtx.clearRect(tailBox.x, tailBox.y, tailBox.x1 - tailBox.x, tailBox.y1 - tailBox.y);
+  tailBox = null;
 }
 function onUp(e) {
   if (e.pointerType === 'touch') { touchUp(e); return; }
