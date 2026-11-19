@@ -87,6 +87,9 @@
     <button id="btn-colours" class="blob only-portrait" data-tray="tray-colours" aria-label="Colours">
       <span id="colour-dot" class="colour-dot"></span>
     </button>
+    <button id="btn-zoom" class="blob only-portrait" data-tray="tray-zoom" aria-label="Zoom">
+      <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg>
+    </button>
     <span class="sep only-portrait"></span>
     <button id="btn-undo" class="blob" aria-label="Undo">
       <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
@@ -195,7 +198,22 @@
     <div class="pop-row"><span>Pens on the right<br><span class="soft small">For drawing with your left hand</span></span><button id="set-swap" class="switch" role="switch" aria-checked="false" aria-label="Pens on the right"><span></span></button></div>
   </div>
 
-  <button id="btn-fit" class="patch btn fit-btn" style="--fill: #FFF6E5" hidden>Fit to screen</button>
+  <!-- zoom console: only the paper zooms; trays and bars stay put -->
+  <aside id="tray-zoom" class="patch tray zoom-console" style="--fill: #FFF6E5" aria-label="Zoom">
+    <div class="dpad off" id="dpad">
+      <button class="arm up" data-dx="0" data-dy="1" aria-label="Move up"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4l6 9H4z"/></svg></button>
+      <button class="arm left" data-dx="1" data-dy="0" aria-label="Move left"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10l9-6v12z"/></svg></button>
+      <span class="hub" aria-hidden="true"></span>
+      <button class="arm right" data-dx="-1" data-dy="0" aria-label="Move right"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10l-9 6V4z"/></svg></button>
+      <button class="arm down" data-dx="0" data-dy="-1" aria-label="Move down"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 16L4 7h12z"/></svg></button>
+      <button class="shirt big" id="zoom-in" aria-label="Zoom in"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="#5A3A2E"><circle cx="50" cy="34" r="6"/><circle cx="50" cy="66" r="6"/><circle cx="34" cy="50" r="6"/><circle cx="66" cy="50" r="6"/></g><path d="M50 34v32M34 50h32" stroke="#FFFDF7" stroke-width="7" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="zoom-row">
+      <button class="shirt small" id="zoom-out" aria-label="Zoom out"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="#5A3A2E"><circle cx="34" cy="50" r="7"/><circle cx="66" cy="50" r="7"/></g><path d="M34 50h32" stroke="#FFFDF7" stroke-width="9" stroke-linecap="round"/></svg></button>
+      <span class="zoom-level" id="zoom-level" aria-live="polite">1×</span>
+      <button class="fit-tag" id="zoom-fit">Fit</button>
+    </div>
+  </aside>
 </section>
 
 <!-- ============ DIALOGS ============ -->

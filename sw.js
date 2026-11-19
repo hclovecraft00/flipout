@@ -1,6 +1,6 @@
 // Keeps Flipout working offline. Shows the saved copy straight away and
 // fetches any update in the background, so a new version appears next launch.
-const CACHE = 'flipout-v6';
+const CACHE = 'flipout-v7';
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/main.js', 'js/editor.js', 'js/brushes.js', 'js/png-worker.js', 'js/exporter.js', 'js/fill.js', 'js/store.js', 'js/ui.js',

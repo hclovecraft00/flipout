@@ -29,7 +29,9 @@ let loadToken = 0, onionToken = 0, playToken = 0;
 let loading = false, playing = false;
 let undoStack = [], redoStack = [];
 let stroke = null, penSeen = false, lastPenAt = 0;
-let view = { s: 1, tx: 0, ty: 0 }, base = { left: 0, top: 0, w: 0, h: 0 };
+// Paper zoom: only the paper zooms (trays and bars stay put), with the console's buttons.
+const ZOOMS = [1, 1.5, 2, 3, 4];
+let zoomIdx = 0, panX = 0, panY = 0, base = { left: 0, top: 0, w: 0, h: 0 };
 let saveTimer = null, metaTimer = null, inFlight = new Set();
 let clipboard = null;
 let brush, onionCtx, playCtx, tintCanvas, tintCtx, tailCtx, tailBox = null;
@@ -65,7 +67,7 @@ export async function openEditor(meta, exitCallback) {
   if (!P.layers.find((l) => l.id === P.activeLayer && !l.guide)) P.activeLayer = (drawLayers().at(-1) || P.layers[P.layers.length - 1]).id;
   cells = new Map(); live = new Map(); dirty = new Set(); flats = new Map();
   undoStack = []; redoStack = []; stroke = null; playing = false; clipboard = null;
-  view = { s: 1, tx: 0, ty: 0 };
+  zoomIdx = 0; panX = 0; panY = 0;
 
   const all = await store.getAllCells(P.id);
   const frameSet = new Set(P.frames), layerSet = new Set(P.layers.map((l) => l.id));
@@ -123,7 +125,7 @@ function layout() {
     else bottom = Math.min(bottom, r.top - 14);
   }
   if (!COMPACT.matches) {
-    for (const el of document.querySelectorAll('#editor .tray')) {
+    for (const el of document.querySelectorAll('#editor .tray')) { // pens, colours and the zoom console
       const r = el.getBoundingClientRect();
       if (r.width === 0) continue;
       if (r.left + r.width / 2 < W / 2) left = Math.max(left, r.right + 24);
@@ -141,10 +143,32 @@ function layout() {
   applyView();
 }
 function applyView() {
-  $('paper').style.transform = `translate(${view.tx}px, ${view.ty}px) scale(${view.s})`;
-  $('btn-fit').hidden = Math.abs(view.s - 1) < 0.01 && Math.abs(view.tx) < 1 && Math.abs(view.ty) < 1;
+  const s = ZOOMS[zoomIdx];
+  if (s === 1) { panX = 0; panY = 0; }
+  // never let the paper slide fully off screen
+  const mx = base.w * (s - 1) / 2 + base.w * 0.35, my = base.h * (s - 1) / 2 + base.h * 0.35;
+  panX = Math.max(-mx, Math.min(mx, panX)); panY = Math.max(-my, Math.min(my, panY));
+  // zoom around the middle of the paper's usual spot, then shift by the pan
+  const ox = base.w * (1 - s) / 2 + panX, oy = base.h * (1 - s) / 2 + panY;
+  $('paper').style.transform = s === 1 ? '' : `translate(${ox}px, ${oy}px) scale(${s})`;
+  $('zoom-level').textContent = (s % 1 ? s.toFixed(1) : s) + '×';
+  $('dpad').classList.toggle('off', s === 1);
+  $('zoom-out').disabled = $('zoom-fit').disabled = zoomIdx === 0;
+  $('zoom-in').disabled = zoomIdx === ZOOMS.length - 1;
 }
-function resetView() { view = { s: 1, tx: 0, ty: 0 }; applyView(); }
+function resetView() { zoomIdx = 0; panX = 0; panY = 0; applyView(); }
+function zoomBy(d) {
+  const old = ZOOMS[zoomIdx];
+  zoomIdx = Math.max(0, Math.min(ZOOMS.length - 1, zoomIdx + d));
+  const s = ZOOMS[zoomIdx];
+  panX *= s / old; panY *= s / old; // keep the same spot in the middle
+  applyView();
+}
+function nudge(dx, dy, px) {
+  if (ZOOMS[zoomIdx] === 1) return;
+  panX += dx * px; panY += dy * px;
+  applyView();
+}
 
 function toCanvas(e, rect) {
   const r = rect || $('paper').getBoundingClientRect();
@@ -958,7 +982,25 @@ function wireOnce() {
   $('btn-export').onclick = () => { stopPlay(); closePop(); flushCurrent(); openExport(exportApi); };
   $('btn-add').onclick = frameActions.add;
   $('btn-dup').onclick = frameActions.dup;
-  $('btn-fit').onclick = resetView;
+  // zoom console
+  $('zoom-in').onclick = () => zoomBy(1);
+  $('zoom-out').onclick = () => zoomBy(-1);
+  $('zoom-fit').onclick = resetView;
+  let glide = null;
+  document.querySelectorAll('#dpad .arm').forEach((b) => {
+    const dx = +b.dataset.dx, dy = +b.dataset.dy;
+    const stop = () => { if (glide) cancelAnimationFrame(glide.raf); glide = null; b.classList.remove('held'); };
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); stop();
+      b.setPointerCapture(e.pointerId); b.classList.add('held');
+      nudge(dx, dy, 60); // tap: a nudge
+      const t0 = performance.now();
+      const tick = (t) => { if (!glide) return; if (t - t0 > 260) nudge(dx, dy, 9); glide.raf = requestAnimationFrame(tick); }; // hold: glide
+      glide = { raf: requestAnimationFrame(tick) };
+    });
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, stop);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+  });
   $('pop-frame').querySelectorAll('[data-act]').forEach((b) => { b.onclick = () => { closePop(); frameActions[b.dataset.act](); }; });
 
   // size
@@ -1018,6 +1060,9 @@ function wireOnce() {
     else if (k === 'e') setTool('eraser');
     else if (k === 'g') setTool('bucket');
     else if (k === 'o') { P.onion.on = !P.onion.on; onionChanged(); }
+    else if (k === '+' || k === '=') zoomBy(1);
+    else if (k === '-') zoomBy(-1);
+    else if (k === '0') resetView();
     else if (k === 'n') frameActions.add();
     else if (k === 'd') frameActions.dup();
   });
