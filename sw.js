@@ -1,6 +1,7 @@
-// Keeps Flipout working offline. Shows the saved copy straight away and
-// fetches any update in the background, so a new version appears next launch.
-const CACHE = 'flipout-v7';
+// Keeps Flipout working offline.
+// Online: always asks GitHub for the latest files (so a new version never arrives half
+// old, half new) and keeps a copy. Offline, or if the connection is very slow: uses the copy.
+const CACHE = 'flipout-v8';
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/main.js', 'js/editor.js', 'js/brushes.js', 'js/png-worker.js', 'js/exporter.js', 'js/fill.js', 'js/store.js', 'js/ui.js',
@@ -10,7 +11,9 @@ const FILES = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE)
+    .then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -20,12 +23,19 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(caches.open(CACHE).then(async (cache) => {
-    const cached = await cache.match(e.request, { ignoreSearch: true });
-    const fresh = fetch(e.request).then((res) => {
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    // 'no-cache' = check with GitHub every time (it answers "not changed" quickly when nothing is new)
+    const fresh = fetch(e.request, { cache: 'no-cache' }).then((res) => {
       if (res.ok) cache.put(e.request, res.clone());
       return res;
-    }).catch(() => cached);
+    });
+    const slow = new Promise((resolve) => setTimeout(resolve, 4000));
+    try {
+      const res = await Promise.race([fresh, slow]);
+      if (res) return res;
+    } catch { /* offline */ }
+    const cached = await cache.match(e.request, { ignoreSearch: true });
     return cached || fresh;
-  }));
+  })());
 });
