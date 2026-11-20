@@ -238,6 +238,14 @@
 
 <dialog id="dlg-export" class="sheet">
   <h2>Export</h2>
+  <div class="play-order">
+    <span class="small"><strong>Play order</strong> for the GIF and video</span>
+    <div class="seg" id="play-order" role="radiogroup" aria-label="Play order">
+      <button role="radio" aria-checked="true" data-v="fwd">Forward</button>
+      <button role="radio" aria-checked="false" data-v="back">Backward</button>
+      <button role="radio" aria-checked="false" data-v="both">Forward + back</button>
+    </div>
+  </div>
   <div class="export-list">
     <div class="export-item" style="--tint: var(--pink)">
       <div><strong>GIF</strong><span class="small">Loops forever. Good for chats and the web.</span></div>

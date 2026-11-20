@@ -10,7 +10,7 @@ Frame-by-frame flipbook animation for iPad and Apple Pencil, with adjustable oni
 - Duplicate, add, copy/paste, move and delete frames. Drag along the bead string to flip through frames.
 - Zoom into the paper with the felt console (bottom-left): the big shirt button zooms in, the small one zooms out, the D-pad moves around, Fit puts it back. Trays and bars stay put.
 - Fingers never draw: two-finger tap to undo, three-finger tap to redo.
-- Export GIF, MP4 or PNG frames, or save a backup file of the whole project.
+- Export GIF, MP4 or PNG frames, or save a backup file of the whole project. GIFs and videos can play forward, backward, or forward then back (a seamless loop).
 - Everything is saved in the browser on your device. Nothing is uploaded.
 
 Keyboard (if one is attached): ← → frames, space play, P pen, F fuzzy, E eraser, G bucket, O onion skin, + / − zoom, 0 fit, N new frame, D duplicate, ⌘Z undo, ⇧⌘Z redo.

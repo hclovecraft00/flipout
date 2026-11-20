@@ -18,7 +18,7 @@ export function openExport(editorApi) {
 function wire() {
   if (wired) return;
   wired = true;
-  for (const id of ['gif-size', 'mp4-len']) {
+  for (const id of ['gif-size', 'mp4-len', 'play-order']) {
     const seg = $(id);
     seg.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
@@ -44,6 +44,19 @@ function wire() {
 }
 
 const choice = (id) => $(id).querySelector('[aria-checked="true"]').dataset.v;
+
+// Which drawing comes when. "both" goes there and back without repeating the end
+// drawings (1 2 3 4 5 4 3 2, then 1 again), so the loop has no stutter at either end.
+function playOrder(n) {
+  const mode = choice('play-order');
+  const fwd = Array.from({ length: n }, (_, i) => i);
+  if (mode === 'back') return fwd.slice().reverse();
+  if (mode === 'both' && n > 2) return [...fwd, ...fwd.slice(1, -1).reverse()];
+  return fwd;
+}
+function orderSuffix() {
+  return { back: '-backwards', both: '-forwards-backwards' }[choice('play-order')] || '';
+}
 
 function resetStatus() {
   ready = null;
@@ -114,31 +127,32 @@ async function makeGif(scale, alive) {
     await nextTick();
   }
   const palette = quantize(sample.subarray(0, s), 256);
-  // 2) encode
+  // 2) encode, in the chosen play order
   const gif = GIFEncoder();
-  for (let i = 0; i < n; i++) {
+  const order = playOrder(n), m = order.length;
+  for (let k = 0; k < m; k++) {
     if (!alive()) return null;
-    progress(0.3 + i / n * 0.7, `Making GIF… frame ${i + 1} of ${n}`);
-    await frameOnWhite(i, ctx, w, h);
+    progress(0.3 + k / m * 0.7, `Making GIF… frame ${k + 1} of ${m}`);
+    await frameOnWhite(order[k], ctx, w, h);
     const d = ctx.getImageData(0, 0, w, h).data;
     const index = applyPalette(d, palette);
-    gif.writeFrame(index, w, h, { palette: i === 0 ? palette : undefined, delay: 1000 / P.fps, repeat: i === 0 ? 0 : undefined });
+    gif.writeFrame(index, w, h, { palette: k === 0 ? palette : undefined, delay: 1000 / P.fps, repeat: k === 0 ? 0 : undefined });
     await nextTick();
   }
   gif.finish();
-  const file = new File([gif.bytes()], `${slug(P.name)}.gif`, { type: 'image/gif' });
+  const file = new File([gif.bytes()], `${slug(P.name)}${orderSuffix()}.gif`, { type: 'image/gif' });
   return { files: [file], label: 'GIF' };
 }
 
 // ---------- MP4 ----------
 function videoPlan(len) {
-  const P = api.meta, n = P.frames.length, fps = P.fps;
+  const P = api.meta, order = playOrder(P.frames.length), n = order.length, fps = P.fps;
   let loops = 1;
   if (len === 'x3') loops = 3;
   else if (len.endsWith('s')) loops = Math.max(1, Math.ceil(parseInt(len, 10) * fps / n));
   // Video players like 24–30 frames a second: hold each drawing for a whole number of video frames.
   const hold = fps >= 24 ? 1 : Math.ceil(24 / fps);
-  return { n, loops, hold, rate: fps * hold, drawings: n * loops };
+  return { n, order, loops, hold, rate: fps * hold, drawings: n * loops };
 }
 
 async function makeMp4(len, alive) {
@@ -165,7 +179,7 @@ async function makeMp4(len, alive) {
     if (!alive()) { enc.close(); return null; }
     if (failed) throw failed;
     progress(d / plan.drawings, `Making video… ${d + 1} of ${plan.drawings}`);
-    await frameOnWhite(d % plan.n, ctx, w, h);
+    await frameOnWhite(plan.order[d % plan.n], ctx, w, h);
     for (let r = 0; r < plan.hold; r++, k++) {
       const vf = new VideoFrame(c, { timestamp: Math.round(k * dur), duration: Math.round(dur) });
       enc.encode(vf, { keyFrame: k % (plan.rate * 2) === 0 });
@@ -177,7 +191,7 @@ async function makeMp4(len, alive) {
   enc.close();
   if (failed) throw failed;
   muxer.finalize();
-  const file = new File([muxer.target.buffer], `${slug(P.name)}.mp4`, { type: 'video/mp4' });
+  const file = new File([muxer.target.buffer], `${slug(P.name)}${orderSuffix()}.mp4`, { type: 'video/mp4' });
   return { files: [file], label: 'Video' };
 }
 
@@ -197,14 +211,14 @@ async function recordMp4(plan, w, h, alive) {
   for (let d = 0; d < plan.drawings; d++) {
     if (!alive()) { rec.stop(); return null; }
     progress(d / plan.drawings, `Recording video in real time… ${d + 1} of ${plan.drawings}`);
-    await frameOnWhite(d % plan.n, ctx, w, h);
+    await frameOnWhite(plan.order[d % plan.n], ctx, w, h);
     const wait = t0 + (d + 1) * ms - performance.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   }
   rec.stop();
   await stopped;
   const ext = type.startsWith('video/mp4') ? 'mp4' : 'webm';
-  const file = new File(chunks, `${slug(api.meta.name)}.${ext}`, { type: type.split(';')[0] });
+  const file = new File(chunks, `${slug(api.meta.name)}${orderSuffix()}.${ext}`, { type: type.split(';')[0] });
   return { files: [file], label: 'Video' };
 }
 

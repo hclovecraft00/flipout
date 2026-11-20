@@ -1,7 +1,7 @@
 // Keeps Flipout working offline.
 // Online: always asks GitHub for the latest files (so a new version never arrives half
 // old, half new) and keeps a copy. Offline, or if the connection is very slow: uses the copy.
-const CACHE = 'flipout-v9';
+const CACHE = 'flipout-v10';
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/main.js', 'js/editor.js', 'js/brushes.js', 'js/png-worker.js', 'js/exporter.js', 'js/fill.js', 'js/store.js', 'js/ui.js',

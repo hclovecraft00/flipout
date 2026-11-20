@@ -295,6 +295,8 @@ dialog h2 { margin: 0 0 16px; font: 400 22px var(--font-pop); }
 .shape { display: block; height: 56px; max-width: 64px; width: auto; background: #fff; border-radius: 4px; box-shadow: 0 0 0 2px var(--cocoa); }
 .sheet-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 .export-list { display: flex; flex-direction: column; gap: 12px; }
+.play-order { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; padding: 14px 16px; border-radius: 22px; background: var(--lemon); }
+.play-order strong { font: 400 15px var(--font-pop); margin-right: 4px; }
 .export-item { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; padding: 14px 16px; border-radius: 22px; background: var(--tint); }
 .export-item > div:first-child { display: flex; flex-direction: column; gap: 2px; }
 .export-item strong { font: 400 15px var(--font-pop); }
